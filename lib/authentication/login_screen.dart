@@ -5,6 +5,7 @@ import '../themes.dart';
 import '../services/graphql_service.dart';
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
+import '../utils/responsive.dart';
 
 // Helper function to calculate responsive font size
 double responsiveFontSize(BuildContext context, double baseFontSize) {
@@ -83,7 +84,15 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final emailForBackend = '$phone@horentals.com';
+      String emailForBackend;
+      if (phone.contains('@')) {
+        emailForBackend = phone;
+      } else if (phone.toLowerCase() == 'admin') {
+        emailForBackend = 'admin@horentals.com';
+      } else {
+        emailForBackend = '$phone@horentals.com';
+      }
+      
       final result = await GraphQLService.login(emailForBackend, password);
 
       if (result['token'] != null && result['user'] != null) {
@@ -142,95 +151,137 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor(context),
-      body: SizedBox(
-        height: MediaQuery.of(context).size.height,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: responsivePadding(context),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 20),
-
-                    // Your Logo
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+      body: Row(
+        children: [
+          if (Responsive.isDesktop(context) || Responsive.isTablet(context))
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.all(10),
+                        child: Image.asset('assets/logo.png'),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(25),
-                        child: Image.asset(
-                          'assets/logo.png',
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppTheme.primaryRed,
-                          child: Center(
-                            child: Text(
-                              'LOGO',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: responsiveFontSize(context, 16),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                      const SizedBox(height: 32),
+                      const Text(
+                        'HO Rentals',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'The premium student housing platform.',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                // Header Section
-                Column(
-                  children: [
-                    Text(
-                      "Welcome Back",
-                      style: TextStyle(
-                        fontSize: responsiveFontSize(context, 28),
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textColor(context),
-                        letterSpacing: -0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Sign in with your phone number",
-                      style: TextStyle(
-                        fontSize: responsiveFontSize(context, 16),
-                        color: AppTheme.textSecondaryColor(context),
-                        fontWeight: FontWeight.w400,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-
-                // Form Container with Shadow
-                Container(
+              ),
+            ),
+          Expanded(
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: responsivePadding(context),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 20),
+                          if (!(Responsive.isDesktop(context) || Responsive.isTablet(context)))
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(25),
+                                child: Image.asset(
+                                  'assets/logo.png',
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: AppTheme.primaryRed,
+                                      child: Center(
+                                        child: Text(
+                                          'LOGO',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: responsiveFontSize(context, 16),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 20),
+                          // Header Section
+                          Column(
+                            children: [
+                              Text(
+                                "Welcome Back",
+                                style: TextStyle(
+                                  fontSize: responsiveFontSize(context, 28),
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.textColor(context),
+                                  letterSpacing: -0.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Sign in with your phone number",
+                                style: TextStyle(
+                                  fontSize: responsiveFontSize(context, 16),
+                                  color: AppTheme.textSecondaryColor(context),
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          // Form Container
+                          // ... Rest of the column content continues
+                          Container(
                   padding: responsivePadding(context, horizontal: 24, vertical: 24),
                   decoration: BoxDecoration(
                     color: AppTheme.cardColor(context),
@@ -271,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(
                                 color: AppTheme.textColor(context),
                               ),
-                              keyboardType: TextInputType.phone,
+                              keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
                                 hintText: "Enter your phone number",
                                 hintStyle: TextStyle(
@@ -486,15 +537,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
 
                 const SizedBox(height: 40),
-                ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
-      ),
-    ),
-  );
-}
+      );
+    }
 
   @override
   void dispose() {

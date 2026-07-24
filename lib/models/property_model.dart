@@ -1,4 +1,22 @@
 
+/// All amenities the app knows about.
+const List<Map<String, dynamic>> kAmenities = [
+  {'key': 'wifi',        'label': 'WiFi',          'icon': 0xe63b}, // wifi_rounded
+  {'key': 'water',       'label': 'Water',          'icon': 0xe798}, // water_drop_rounded
+  {'key': 'electricity', 'label': 'Electricity',    'icon': 0xe1a5}, // bolt_rounded
+  {'key': 'security',    'label': 'Security',       'icon': 0xe32a}, // security_rounded
+  {'key': 'parking',     'label': 'Parking',        'icon': 0xe54f}, // local_parking_rounded
+  {'key': 'bathroom',    'label': 'Bathroom',       'icon': 0xe0fa}, // bathroom_rounded
+  {'key': 'kitchen',     'label': 'Kitchen',        'icon': 0xe56c}, // kitchen_rounded
+  {'key': 'furnished',   'label': 'Furnished',      'icon': 0xe1c4}, // chair_rounded
+  {'key': 'ac',          'label': 'Air Condition',  'icon': 0xe059}, // ac_unit_rounded
+  {'key': 'cctv',        'label': 'CCTV',           'icon': 0xe32c}, // videocam_rounded
+];
+
+// Delimiter used to separate amenities from the human-readable description.
+const String _kAmenityDelimiter = '||amenities:';
+const String _kAmenityEnd = '||';
+
 class Property {
   final String? id;
   final String title;
@@ -14,6 +32,7 @@ class Property {
   final String? createdAt;
   final Map<String, dynamic>? owner;
   final Map<String, dynamic>? company;
+  final bool isFeatured;
 
   Property({
     this.id,
@@ -30,6 +49,7 @@ class Property {
     this.createdAt,
     this.owner,
     this.company,
+    this.isFeatured = false,
   }) : images = images ?? [];
 
   factory Property.fromJson(Map<String, dynamic> json) {
@@ -154,10 +174,13 @@ class Property {
       createdAt: json['createdAt']?.toString(),
       owner: ownerData,
       company: companyData,
+      isFeatured: json['isFeatured'] == true,
     );
   }
 
   // 🚨 CRITICAL: Process image URLs for Cloudinary
+  static const String _railwayBaseUrl = 'https://hrentals-backend-production.up.railway.app';
+
   static String _processImageUrl(String url) {
     if (url.isEmpty) return url;
 
@@ -186,13 +209,23 @@ class Property {
       }
 
       // For local uploads, prepend your Railway URL
-      const baseUrl = 'https://ho-rentals-backend-production.up.railway.app';
-      final fullUrl = url.startsWith('/') ? '$baseUrl$url' : '$baseUrl/$url';
+      final fullUrl = url.startsWith('/') ? '$_railwayBaseUrl$url' : '$_railwayBaseUrl/$url';
       print('   🔧 Fixed local URL: $fullUrl');
       return fullUrl;
     }
 
-    // Case 4: Already a valid full URL
+    // Case 4: localhost URL — rewrite to Railway (images uploaded during local dev)
+    if (url.contains('localhost') || url.contains('127.0.0.1')) {
+      final uri = Uri.tryParse(url);
+      if (uri != null) {
+        final path = uri.path; // e.g. /uploads/filename.jpg
+        final fullUrl = '$_railwayBaseUrl$path';
+        print('   🔧 Rewrote localhost URL to Railway: $fullUrl');
+        return fullUrl;
+      }
+    }
+
+    // Case 5: Already a valid full URL (Railway or other)
     print('   ✅ Valid full URL');
     return url;
   }
@@ -256,6 +289,44 @@ class Property {
     return allUrls;
   }
 
+  // ─── Amenity helpers ────────────────────────────────────────────────────────
+
+  /// Encode a list of amenity keys + a plain description into one string.
+  static String encodeDescription(String plainDescription, List<String> amenityKeys) {
+    final desc = plainDescription.trim();
+    if (amenityKeys.isEmpty) return desc;
+    final encoded = amenityKeys.join(',');
+    return '$desc$_kAmenityDelimiter$encoded$_kAmenityEnd';
+  }
+
+  /// Extract the human-readable description (without the amenity suffix).
+  static String decodeDescription(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    final idx = raw.indexOf(_kAmenityDelimiter);
+    if (idx == -1) return raw.trim();
+    return raw.substring(0, idx).trim();
+  }
+
+  /// Extract the list of amenity keys stored in the description.
+  static List<String> decodeAmenities(String? raw) {
+    if (raw == null || raw.isEmpty) return [];
+    final start = raw.indexOf(_kAmenityDelimiter);
+    if (start == -1) return [];
+    final after = raw.substring(start + _kAmenityDelimiter.length);
+    final end = after.indexOf(_kAmenityEnd);
+    final encoded = end == -1 ? after : after.substring(0, end);
+    if (encoded.trim().isEmpty) return [];
+    return encoded.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+  }
+
+  /// Convenience getter — amenity keys for this property.
+  List<String> get amenities => decodeAmenities(description);
+
+  /// Convenience getter — plain description without amenity data.
+  String get plainDescription => decodeDescription(description);
+
+  // ────────────────────────────────────────────────────────────────────────────
+
   Property copyWith({
     String? id,
     String? title,
@@ -271,6 +342,7 @@ class Property {
     String? createdAt,
     Map<String, dynamic>? owner,
     Map<String, dynamic>? company,
+    bool? isFeatured,
   }) {
     return Property(
       id: id ?? this.id,
@@ -287,6 +359,7 @@ class Property {
       createdAt: createdAt ?? this.createdAt,
       owner: owner ?? this.owner,
       company: company ?? this.company,
+      isFeatured: isFeatured ?? this.isFeatured,
     );
   }
 

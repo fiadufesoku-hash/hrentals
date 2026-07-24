@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
 import '../models/property_model.dart';
 import '../services/graphql_service.dart';
 import '../themes.dart';
@@ -14,6 +16,9 @@ class PropertyListScreen extends StatefulWidget {
 }
 
 class _PropertyListScreenState extends State<PropertyListScreen> {
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  Map<String, dynamic>? _currentUser;
+
   final TextEditingController _searchController = TextEditingController();
   late TextEditingController _minPriceController;
   late TextEditingController _maxPriceController;
@@ -59,13 +64,45 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _fetchProperties();
     _minPriceController = TextEditingController(text: _minPrice.toInt().toString());
     _maxPriceController = TextEditingController(text: _maxPrice.toInt().toString());
   }
 
+  Future<void> _loadUserData() async {
+    try {
+      final data = await _storage.read(key: 'user_data');
+      if (data != null && mounted) {
+        setState(() {
+          _currentUser = json.decode(data);
+        });
+        log('👤 [Property List] Loaded user data: ${_currentUser?['name']}');
+      }
+    } catch (e) {
+      log('❌ Error loading user data: $e');
+    }
+  }
+
+  String _getUserName() {
+    if (_currentUser == null) return 'Guest';
+    return _currentUser!['name'] ?? _currentUser!['email']?.split('@').first ?? 'Guest';
+  }
+
+  String _getUserInitials() {
+    if (_currentUser == null) return 'G';
+    final name = _currentUser!['name'] ?? _currentUser!['email'] ?? 'Guest';
+    final parts = name.split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.isNotEmpty ? name[0].toUpperCase() : 'G';
+  }
+
   Future<void> _fetchProperties() async {
-    setState(() => _isLoading = true);
+    if (_properties.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     try {
       print('🔄 Fetching properties from GraphQL...');
       final propertiesData = await GraphQLService.getProperties();
@@ -679,52 +716,61 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor(context),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            backgroundColor: AppTheme.cardColor(context),
-            elevation: 0,
-            pinned: true,
-            floating: true,
-            title: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Good morning 👋',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondaryColor(context),
+      body: RefreshIndicator(
+        onRefresh: _fetchProperties,
+        color: AppTheme.primaryRed,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              backgroundColor: AppTheme.cardColor(context),
+              elevation: 0,
+              pinned: true,
+              floating: true,
+              title: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        _getUserInitials(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    Text(
-                      'Jaque Daniels',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textColor(context),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Good morning 👋',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondaryColor(context),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      Text(
+                        _getUserName(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textColor(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
 
           SliverToBoxAdapter(
             child: Padding(
@@ -972,6 +1018,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           ),
         ],
       ),
+    ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(

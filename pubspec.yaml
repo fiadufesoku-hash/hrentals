@@ -27,6 +27,7 @@ dependencies:
   mime: ^1.0.4          # For detecting file MIME types
   cached_network_image: ^3.2.3
   flutter_animate: ^4.5.2
+  fl_chart: ^0.66.0
 
 dev_dependencies:
   flutter_test:

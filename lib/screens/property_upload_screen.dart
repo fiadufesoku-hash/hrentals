@@ -46,6 +46,9 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
   bool _isUploading = false;
   final bool _isLoading = false;
 
+  // Amenities
+  final Set<String> _selectedAmenities = {};
+
   // Property types
   final List<String> _propertyTypes = [
     'Student Hostel',
@@ -75,12 +78,15 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     final property = widget.propertyToEdit!;
 
     _titleController.text = property.title;
-    _descriptionController.text = property.description ?? '';
+    _descriptionController.text = property.plainDescription; // plain text only
     _locationController.text = property.location;
     _priceController.text = property.price.toString();
     _contactController.text = property.contact ?? '';
     _selectedType = property.type;
     _selectedStatus = property.status ?? 'available';
+
+    // Load amenities from encoded description
+    _selectedAmenities.addAll(property.amenities);
 
     // Set images from existing images array
     if (property.images.isNotEmpty) {
@@ -91,6 +97,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     print('   Type: ${property.type}');
     print('   Status: ${property.status}');
     print('   Images: ${_uploadedImageUrls.length}');
+    print('   Amenities: ${_selectedAmenities.toList()}');
   }
 
   @override
@@ -123,6 +130,12 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
       // Upload any remaining selected files
       await _uploadSelectedImages();
 
+      // Encode amenities into the description
+      final encodedDescription = Property.encodeDescription(
+        _descriptionController.text.trim(),
+        _selectedAmenities.toList(),
+      );
+
       if (widget.propertyToEdit == null) {
         // CREATE NEW PROPERTY
         await GraphQLService.createProperty(
@@ -130,7 +143,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
           location: _locationController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           type: _selectedType,
-          description: _descriptionController.text.trim(),
+          description: encodedDescription,
           contact: _contactController.text.trim(),
           status: _selectedStatus,
           imageUrls: _uploadedImageUrls,
@@ -143,7 +156,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
           location: _locationController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           type: _selectedType,
-          description: _descriptionController.text.trim(),
+          description: encodedDescription,
           contact: _contactController.text.trim(),
           status: _selectedStatus,
           existingImageUrls: _uploadedImageUrls,
@@ -250,7 +263,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     try {
       print('🖼️ Uploading images...');
 
-      final uri = Uri.parse('https://ho-rentals-backend-production.up.railway.app/api/upload-multiple');
+      final uri = Uri.parse('https://hrentals-backend-production.up.railway.app/api/upload-multiple');
       final request = http.MultipartRequest('POST', uri);
 
       // --- MOBILE FILES ---
@@ -542,7 +555,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
 
     try {
       // Test 1: Backend health
-      final healthResponse = await http.get(Uri.parse('https://ho-rentals-backend-production.up.railway.app/health'));
+      final healthResponse = await http.get(Uri.parse('https://hrentals-backend-production.up.railway.app/health'));
       print('   ✅ Backend health: ${healthResponse.statusCode}');
 
       // Test 2: GraphQL
@@ -551,7 +564,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
 
       // Test 3: Upload endpoint
       print('3. Testing upload endpoint...');
-      final uploadTest = await http.get(Uri.parse('https://ho-rentals-backend-production.up.railway.app/api/upload'));
+      final uploadTest = await http.get(Uri.parse('https://hrentals-backend-production.up.railway.app/api/upload'));
       print('   ✅ Upload endpoint: ${uploadTest.statusCode}');
 
       // Test 4: Check login
@@ -573,6 +586,67 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
         SnackBar(content: Text('❌ Test failed: $e'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  Widget _buildAmenitiesSection() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: kAmenities.map((amenity) {
+        final key = amenity['key'] as String;
+        final label = amenity['label'] as String;
+        final iconCode = amenity['icon'] as int;
+        final selected = _selectedAmenities.contains(key);
+
+        return GestureDetector(
+          onTap: () => setState(() {
+            if (selected) {
+              _selectedAmenities.remove(key);
+            } else {
+              _selectedAmenities.add(key);
+            }
+          }),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected ? AppTheme.primaryRed : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected
+                    ? AppTheme.primaryRed
+                    : Colors.grey.withOpacity(0.4),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  IconData(iconCode, fontFamily: 'MaterialIcons'),
+                  size: 16,
+                  color: selected ? Colors.white : AppTheme.primaryRed,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: selected ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                  size: 15,
+                  color: selected ? Colors.white : Colors.grey,
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   // CARD STYLE WIDGETS
@@ -715,6 +789,12 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
                     prefixIcon: Icon(Icons.phone),
                   ),
                 ),
+              ),
+
+              // AMENITIES CARD
+              _buildCardSection(
+                title: 'Amenities & Features',
+                child: _buildAmenitiesSection(),
               ),
 
               // PROPERTY DETAILS CARD

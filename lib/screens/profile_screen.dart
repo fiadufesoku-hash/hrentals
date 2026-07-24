@@ -28,39 +28,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'title': 'Personal Information',
       'subtitle': 'Update your profile details',
       'icon': Icons.person_outline_rounded,
-      'color': Colors.blue,
+      'color': AppTheme.primaryRed,
       'route': '/personal_info',
     },
     {
       'title': 'Saved Properties',
       'subtitle': 'View your favorite listings',
       'icon': Icons.bookmark_border_rounded,
-      'color': Colors.purple,
+      'color': AppTheme.gold,
     },
     {
       'title': 'Privacy Policy',
       'subtitle': 'Read our privacy policy',
       'icon': Icons.security_rounded,
-      'color': Colors.green,
+      'color': AppTheme.primaryRed,
     },
     {
       'title': 'Terms & Conditions',
       'subtitle': 'Read our terms of service',
       'icon': Icons.description_rounded,
-      'color': Colors.orange,
+      'color': AppTheme.primaryRed,
     },
     {
       'title': 'Help & Support',
       'subtitle': 'Get help and contact support',
       'icon': Icons.help_outline_rounded,
-      'color': Colors.red,
+      'color': AppTheme.primaryRed,
       'route': '/help_support',
     },
     {
       'title': 'About Ho Rentals',
       'subtitle': 'Learn more about our app',
       'icon': Icons.info_outline_rounded,
-      'color': Colors.teal,
+      'color': AppTheme.primaryRed,
     },
   ];
 
@@ -68,6 +68,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _currentUser;
   bool _isDarkMode = false;
   bool _isInitialized = false;
+
+  List<Map<String, dynamic>> get _getEffectiveProfileOptions {
+    final options = List<Map<String, dynamic>>.from(_profileOptions);
+    final role = _currentUser?['role']?.toString().toLowerCase() ?? 'user';
+    if (role == 'admin' || role == 'partner') {
+      if (!options.any((opt) => opt['title'] == 'Admin Dashboard')) {
+        options.insert(0, {
+          'title': 'Admin Dashboard',
+          'subtitle': 'Manage properties and users',
+          'icon': Icons.admin_panel_settings_rounded,
+          'color': AppTheme.gold,
+        });
+      }
+    }
+    return options;
+  }
 
   @override
   void initState() {
@@ -612,6 +628,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                                 border: Border.all(
                                   color: Colors.white,
                                   width: 2,
@@ -768,27 +791,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       child: Column(
-                        children: _profileOptions.map((option) {
-                          final index = _profileOptions.indexOf(option);
-                          return Column(
-                            children: [
-                              Material(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                                child: InkWell(
-                                  splashColor: option['color'].withOpacity(0.1),
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
+                        children: () {
+                          final options = _getEffectiveProfileOptions;
+                          return options.map((option) {
+                            final index = options.indexOf(option);
+                            return Column(
+                              children: [
+                                Material(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: InkWell(
+                                    splashColor: option['color'].withOpacity(0.1),
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
 
-                                    if (option['title'] == 'Personal Information') {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              PersonalInformationScreen(userData: _currentUser),
-                                        ),
-                                      );
-                                    } else if (option['title'] == 'Saved Properties') {
+                                      if (option['title'] == 'Personal Information') {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                PersonalInformationScreen(userData: _currentUser),
+                                          ),
+                                        );
+                                      } else if (option['title'] == 'Admin Dashboard') {
+                                        Navigator.pushNamed(context, '/admin');
+                                      } else if (option['title'] == 'Saved Properties') {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -861,8 +888,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                             ],
                           );
-                        }).toList(),
-                      ),
+                        }).toList();
+                      }(),
+                    ),
                     ),
 
                     const SizedBox(height: 24),

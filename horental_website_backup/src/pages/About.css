@@ -1,0 +1,169 @@
+.about-page {
+  background-color: var(--white);
+}
+
+.about-hero {
+  position: relative;
+  height: 80vh;
+  min-height: 600px;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 6rem;
+}
+
+.about-hero-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.about-hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+}
+
+.about-hero-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.about-headline {
+  color: var(--white);
+  font-size: clamp(3rem, 5vw, 5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  max-width: 1000px;
+}
+
+/* Mission Section */
+.mission-section {
+  padding: 8rem 0;
+  background-color: var(--bg-dark);
+  color: var(--white);
+}
+
+.mission-content {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.overline-dark {
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: block;
+  margin-bottom: 2rem;
+}
+
+.mission-content h2 {
+  font-size: clamp(2rem, 3.5vw, 3.5rem);
+  line-height: 1.4;
+  font-weight: 400;
+  letter-spacing: -1px;
+}
+
+/* Difference Section */
+.difference-section {
+  padding: 10rem 0;
+}
+
+.difference-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8rem;
+  align-items: center;
+}
+
+.difference-text h3 {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 2rem;
+  color: var(--text-dark);
+}
+
+.difference-text p {
+  font-size: 1.15rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.about-metrics {
+  display: flex;
+  gap: 4rem;
+  margin-top: 4rem;
+  padding-top: 3rem;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.metric h4 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.metric span {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.difference-image {
+  position: relative;
+  aspect-ratio: 3/4;
+}
+
+.difference-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: -20px 20px 0 rgba(193, 18, 31, 0.05);
+}
+
+@media (max-width: 900px) {
+  .about-hero {
+    height: 60vh;
+    padding-bottom: 4rem;
+  }
+  
+  .mission-section {
+    padding: 5rem 0;
+  }
+  
+  .difference-grid {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+  }
+  
+  .difference-section {
+    padding: 6rem 0;
+  }
+  
+  .about-metrics {
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+}

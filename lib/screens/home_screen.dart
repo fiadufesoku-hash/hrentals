@@ -222,6 +222,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ).toList();
       }
 
+      // Always keep featured properties at the top
+      filtered.sort((a, b) {
+        if (a.isFeatured == b.isFeatured) return 0;
+        return a.isFeatured ? -1 : 1;
+      });
+
       _filteredProperties = filtered;
     });
   }
@@ -287,15 +293,33 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () => Navigator.pushNamed(context, '/profile'),
                           child: Padding(
                             padding: const EdgeInsets.only(right: 8),
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: AppTheme.primaryRed.withOpacity(0.1),
-                              child: Text(
-                                _getInitials(),
-                                style: TextStyle(
-                                  fontSize: responsiveFontSize(context, 12),
-                                  color: AppTheme.primaryRed,
-                                  fontWeight: FontWeight.w600,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: AppTheme.primaryGradient,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryRed.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 15,
+                                backgroundColor: Colors.transparent,
+                                child: Text(
+                                  _getInitials(),
+                                  style: TextStyle(
+                                    fontSize: responsiveFontSize(context, 12),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.2,
+                                  ),
                                 ),
                               ),
                             ),
@@ -316,12 +340,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: responsivePadding(context, horizontal: 16, vertical: 16),
+                  padding: Responsive.isMobile(context)
+                      ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+                      : responsivePadding(context, horizontal: 16, vertical: 16),
                   child: Container(
-                    padding: responsivePadding(context, horizontal: 20, vertical: 20),
+                    padding: Responsive.isMobile(context)
+                        ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+                        : responsivePadding(context, horizontal: 24, vertical: 24),
                     decoration: BoxDecoration(
                         gradient: AppTheme.primaryGradient,
-                        borderRadius: const BorderRadius.all(Radius.circular(24)),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(Responsive.isMobile(context) ? 16 : 24),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: AppTheme.primaryRed.withOpacity(0.3),
@@ -330,25 +360,62 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Find Your Perfect Student Accommodation',
-                          style: TextStyle(fontSize: responsiveFontSize(context, 20), fontWeight: FontWeight.w700, color: Colors.white),
+                    child: Responsive.isDesktop(context) || Responsive.isTablet(context)
+                      ? Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Find Your Perfect Student Accommodation',
+                                    style: TextStyle(fontSize: responsiveFontSize(context, 28), fontWeight: FontWeight.w800, color: Colors.white),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Quality hostels, rooms & self-contained apartments near Ho Polytechnic, UHAS & Trafalgar Campus',
+                                    style: TextStyle(color: Colors.white70, fontSize: responsiveFontSize(context, 15)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Expanded(
+                              flex: 2,
+                              child: Icon(Icons.home_work_rounded, size: 100, color: Colors.white24),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Find Your Perfect\nStudent Home',
+                                    style: TextStyle(
+                                      fontSize: responsiveFontSize(context, 15),
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      height: 1.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Ho Polytechnic · UHAS · Trafalgar',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: responsiveFontSize(context, 11),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.home_work_rounded, size: 36, color: Colors.white24),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Near Ho Polytechnic, UHAS & Trafalgar Campus',
-                          style: TextStyle(color: Colors.white70, fontSize: responsiveFontSize(context, 13)),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Quality hostels, rooms & self-contained apartments',
-                          style: TextStyle(color: Colors.white70, fontSize: responsiveFontSize(context, 12)),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),
@@ -406,8 +473,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           sliver: SliverGrid(
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: Responsive.isDesktop(context) ? 3 : 2,
-                              childAspectRatio: 0.8,
+                              crossAxisCount: Responsive.isDesktop(context) ? 4 : (Responsive.isTablet(context) ? 3 : 2),
+                              childAspectRatio: Responsive.isDesktop(context) ? 0.75 : 0.8,
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
                             ),
@@ -611,11 +678,16 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 24,
+                color: p.isFeatured
+                    ? AppTheme.primaryRed.withOpacity(0.18)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: p.isFeatured ? 28 : 24,
                 offset: const Offset(0, 8),
               ),
             ],
+            border: p.isFeatured
+                ? Border.all(color: AppTheme.primaryRed.withOpacity(0.35), width: 1.5)
+                : null,
         ),
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -624,13 +696,52 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: GestureDetector(
-                    onTap: () => _showImageGallery(p),
-                    behavior: HitTestBehavior.opaque,
-                    child: Hero(
-                      tag: 'property_image_${p.id}',
-                      child: _buildPropertyImage(p),
-                    ),
+                  child: Stack(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _showImageGallery(p),
+                        behavior: HitTestBehavior.opaque,
+                        child: Hero(
+                          tag: 'property_image_${p.id}',
+                          child: _buildPropertyImage(p),
+                        ),
+                      ),
+                      if (p.isFeatured)
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryRed.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.star_rounded, color: Colors.white, size: 12),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'FEATURED',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: responsiveFontSize(context, 10),
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -1245,35 +1356,39 @@ class _PropertyCardDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
     return Padding(
-      padding: responsivePadding(context, horizontal: 12, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : responsivePadding(context, horizontal: 12).horizontal / 2,
+        vertical: isMobile ? 10 : 12,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             p.title,
             style: TextStyle(
-              fontSize: responsiveFontSize(context, 16),
+              fontSize: responsiveFontSize(context, isMobile ? 14 : 16),
               fontWeight: FontWeight.w700,
               color: AppTheme.textColor(context),
             ),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isMobile ? 4 : 8),
           Row(
             children: [
               Icon(
                 Icons.location_on_rounded,
-                size: 14,
+                size: 13,
                 color: AppTheme.textSecondaryColor(context),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 3),
               Expanded(
                 child: Text(
                   p.location,
                   style: TextStyle(
-                    fontSize: responsiveFontSize(context, 13),
+                    fontSize: responsiveFontSize(context, isMobile ? 12 : 13),
                     color: AppTheme.textSecondaryColor(context),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1282,38 +1397,90 @@ class _PropertyCardDetails extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isMobile ? 4 : 8),
           Text(
             'GHC ${p.price.toInt()} / month',
             style: TextStyle(
-              fontSize: responsiveFontSize(context, 18),
+              fontSize: responsiveFontSize(context, isMobile ? 15 : 18),
               fontWeight: FontWeight.w800,
               color: AppTheme.primaryRed,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isMobile ? 6 : 10),
+          // Amenity chips
+          if (p.amenities.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: p.amenities.take(isMobile ? 3 : 5).map((key) {
+                  final amenity = kAmenities.firstWhere(
+                    (a) => a['key'] == key,
+                    orElse: () => {'key': key, 'label': key, 'icon': 0xe1a5},
+                  );
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryRed.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primaryRed.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          IconData(amenity['icon'] as int, fontFamily: 'MaterialIcons'),
+                          size: 10,
+                          color: AppTheme.primaryRed,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          amenity['label'] as String,
+                          style: TextStyle(
+                            fontSize: responsiveFontSize(context, 9.5),
+                            color: AppTheme.primaryRed,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          SizedBox(height: isMobile ? 2 : 4),
           Row(
             children: [
               _buildStatusBadge(context),
               const Spacer(),
-              ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => PropertyDetailsScreen(property: p)),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryRed,
-                  padding: responsivePadding(context, horizontal: 20, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              SizedBox(
+                height: isMobile ? 32 : 38,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => PropertyDetailsScreen(property: p)),
                   ),
-                ),
-                child: Text(
-                  'View Details',
-                  style: TextStyle(
-                    fontSize: responsiveFontSize(context, 12),
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryRed,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 20,
+                      vertical: 0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    'View',
+                    style: TextStyle(
+                      fontSize: responsiveFontSize(context, isMobile ? 12 : 12),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

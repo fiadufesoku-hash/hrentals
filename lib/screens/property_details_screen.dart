@@ -541,8 +541,8 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                (property.description?.isNotEmpty == true
-                    ? property.description!
+                (property.plainDescription.isNotEmpty
+                    ? property.plainDescription
                     : 'A comfortable and well-maintained property located in ${property.location}. Perfect for students and professionals looking for quality accommodation.'),
                 style: TextStyle(
                   fontSize: responsiveFontSize(context, 14),
@@ -550,6 +550,57 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                   height: 1.5,
                 ),
               ),
+              if (property.amenities.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Amenities',
+                  style: TextStyle(
+                    fontSize: responsiveFontSize(context, 16),
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textColor(context),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: property.amenities.map((key) {
+                    final amenity = kAmenities.firstWhere(
+                      (a) => a['key'] == key,
+                      orElse: () => {'key': key, 'label': key, 'icon': 0xe1a5},
+                    );
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryRed.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppTheme.primaryRed.withOpacity(0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            IconData(amenity['icon'] as int, fontFamily: 'MaterialIcons'),
+                            size: 15,
+                            color: AppTheme.primaryRed,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            amenity['label'] as String,
+                            style: TextStyle(
+                              fontSize: responsiveFontSize(context, 13),
+                              color: AppTheme.primaryRed,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ),
@@ -609,53 +660,65 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   Widget _buildDesktopLayout(Property property) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1000),
+        constraints: const BoxConstraints(maxWidth: 1200),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left: Image Gallery
+            // Left: Gallery (60%)
             Expanded(
               flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(32.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_rounded),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Back to Listings',
-                          style: TextStyle(
-                            color: AppTheme.textSecondaryColor(context),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                    TextButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                      label: const Text('Back to Results'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.textSecondaryColor(context),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: _buildImageGallery(),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: _buildImageGallery(),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            // Right: Info and Actions
+            // Right: Info and Actions (40%)
             Expanded(
               flex: 2,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    _buildPropertyInfo(property),
-                    const SizedBox(height: 32),
-                    _buildBottomActions(),
-                  ],
+              child: Container(
+                height: MediaQuery.of(context).size.height,
+                padding: const EdgeInsets.all(32.0),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor(context).withOpacity(0.5),
+                  border: Border(left: BorderSide(color: Colors.grey.withOpacity(0.1))),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildPropertyInfo(property),
+                      const SizedBox(height: 40),
+                      _buildBottomActions(),
+                    ],
+                  ),
                 ),
               ),
             ),

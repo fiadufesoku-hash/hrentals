@@ -109,7 +109,7 @@ class GraphQLService {
   static String get _baseUrl {
     // For production builds
     if (kReleaseMode) {
-      return 'https://ho-rentals-backend-production.up.railway.app';
+      return 'https://hrentals-backend-production.up.railway.app';
     }
 
     // For development - check if you want to use Railway or local
@@ -117,7 +117,7 @@ class GraphQLService {
     const bool useRailwayInDev = true; // Set this based on your needs
 
     if (useRailwayInDev) {
-      return 'https://ho-rentals-backend-production.up.railway.app';
+      return 'https://hrentals-backend-production.up.railway.app';
     } else {
       if (kIsWeb) {
         return 'http://localhost:4000';
@@ -146,6 +146,16 @@ class GraphQLService {
         id
         title
         status
+      }
+    }
+  ''';
+
+  static const String TOGGLE_FEATURED = r'''
+    mutation TogglePropertyFeatured($id: Int!) {
+      togglePropertyFeatured(id: $id) {
+        id
+        title
+        isFeatured
       }
     }
   ''';
@@ -366,6 +376,7 @@ class GraphQLService {
       description
       contact
       imageUrl
+      isFeatured
       createdAt
       owner {
         id
@@ -488,6 +499,35 @@ class GraphQLService {
       properties(where: { type: $type }) {
         id
         title
+      }
+    }
+  ''';
+
+  static const String DELETE_USER = r'''
+    mutation DeleteUser($id: Int!) {
+      deleteUser(id: $id) {
+        id
+        name
+      }
+    }
+  ''';
+
+  static const String UPDATE_USER_ROLE = r'''
+    mutation UpdateUserRole($id: Int!, $role: String!) {
+      updateUserRole(id: $id, role: $role) {
+        id
+        role
+      }
+    }
+  ''';
+
+  static const String GET_DASHBOARD_STATS = r'''
+    query GetDashboardStats {
+      dashboardStats {
+        totalProperties
+        totalUsers
+        availableProperties
+        rentedProperties
       }
     }
   ''';
@@ -1005,16 +1045,46 @@ class GraphQLService {
     }
   }
 
-  static const String GET_DASHBOARD_STATS = r'''
-    query GetDashboardStats {
-      dashboardStats {
-        totalProperties
-        totalUsers
-        availableProperties
-        rentedProperties
+  static Future<bool> toggleFeatured(
+    String id, {
+    Function(String updatedId, bool newFeatured)? onSuccess,
+  }) async {
+    try {
+      AppLogger.info('⭐ Toggling featured for property: $id');
+
+      if (!await isLoggedIn()) throw Exception('Not authenticated');
+
+      final client = getClient();
+
+      final result = await client.mutate(
+        MutationOptions(
+          document: gql(TOGGLE_FEATURED),
+          variables: {'id': int.parse(id)},
+          fetchPolicy: FetchPolicy.noCache,
+        ),
+      );
+
+      if (result.hasException) {
+        AppLogger.error('❌ Toggle featured failed: ${result.exception}');
+        throw Exception(result.exception.toString());
       }
+
+      final updated = result.data?['togglePropertyFeatured'];
+      if (updated == null) return false;
+
+      final updatedId = updated['id'].toString();
+      final newFeatured = updated['isFeatured'] as bool;
+
+      AppLogger.info('✅ Featured toggled: $updatedId -> $newFeatured');
+      onSuccess?.call(updatedId, newFeatured);
+
+      await clearCacheAfterMutation();
+      return true;
+    } catch (e) {
+      AppLogger.error('💥 Toggle featured exception: $e');
+      return false;
     }
-  ''';
+  }
 
   static Map<String, dynamic>? _cachedStats;
   static DateTime? _statsCacheTime;

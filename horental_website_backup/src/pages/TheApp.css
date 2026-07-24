@@ -1,0 +1,136 @@
+.app-page {
+  padding-top: 6rem;
+}
+
+.app-hero {
+  padding: 6rem 0;
+  background: linear-gradient(180deg, var(--bg-light) 0%, var(--white) 100%);
+  overflow: hidden;
+}
+
+.app-hero-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.app-hero-content .page-title {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+}
+
+.app-hero-content .page-title span {
+  color: var(--primary);
+}
+
+.app-hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+}
+
+.app-btn {
+  padding: 1rem 3rem;
+  font-size: 1.1rem;
+  border-radius: 50px;
+}
+
+/* Mockup Window Styling */
+.mockup-window {
+  background: var(--bg-dark);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+  transform: perspective(1000px) rotateY(-10deg) rotateX(5deg);
+  transition: transform 0.5s ease;
+}
+
+.mockup-window:hover {
+  transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
+}
+
+.mockup-header {
+  background: #2a2a2a;
+  padding: 0.75rem 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.bg-red { background: #ff5f56; }
+.bg-yellow { background: #ffbd2e; }
+.bg-green { background: #27c93f; }
+
+.mockup-body {
+  position: relative;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+}
+
+.dashboard-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Features Grid */
+.mb-5 { margin-bottom: 4rem; }
+
+.app-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.app-feature-card {
+  background: var(--white);
+  padding: 2.5rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+  text-align: center;
+}
+
+.app-icon {
+  color: var(--primary);
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1.5rem;
+}
+
+.app-feature-card h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  color: var(--text-dark);
+}
+
+.app-feature-card p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 960px) {
+  .app-hero-container {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .mockup-window {
+    transform: none;
+    margin-top: 3rem;
+  }
+  
+  .mockup-window:hover {
+    transform: none;
+  }
+}

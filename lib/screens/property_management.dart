@@ -337,6 +337,48 @@ class _PropertyManagementState extends State<PropertyManagement> {
     }
   }
 
+  Future<void> _toggleFeatured(Property property) async {
+    try {
+      final success = await GraphQLService.toggleFeatured(
+        property.id!,
+        onSuccess: (updatedId, newFeatured) {
+          setState(() {
+            final index = _properties.indexWhere((p) => p.id == updatedId);
+            if (index != -1) {
+              _properties[index] = property.copyWith(isFeatured: newFeatured);
+            }
+          });
+        },
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? (property.isFeatured
+                      ? '"${property.title}" removed from featured'
+                      : '"${property.title}" is now featured')
+                  : 'Failed to update featured status',
+            ),
+            backgroundColor: success
+                ? (property.isFeatured ? Colors.orange : Colors.green)
+                : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating featured: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _toggleAvailability(Property property) async {
     final newStatus = property.status == 'available' ? 'taken' : 'available';
 
@@ -460,10 +502,15 @@ class _PropertyManagementState extends State<PropertyManagement> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          border: property.isFeatured
+              ? Border.all(color: AppTheme.primaryRed.withOpacity(0.4), width: 1.5)
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
+              color: property.isFeatured
+                  ? AppTheme.primaryRed.withOpacity(0.15)
+                  : Colors.black.withOpacity(0.05),
+              blurRadius: property.isFeatured ? 16 : 10,
               offset: const Offset(0, 4),
             ),
           ],
@@ -488,27 +535,68 @@ class _PropertyManagementState extends State<PropertyManagement> {
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
-                child: Hero(
-                  tag: property.id!,
-                  child: Image.network(
-                    displayImage,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                              : null,
+                child: Stack(
+                  children: [
+                    Hero(
+                      tag: property.id!,
+                      child: Image.network(
+                        displayImage,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          print('❌ Image load error: $error');
+                          return _buildPlaceholderImage();
+                        },
+                      ),
+                    ),
+                    if (property.isFeatured)
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryRed.withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star_rounded, color: Colors.white, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                'FEATURED',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: responsiveFontSize(context, 10),
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      print('❌ Image load error: $error');
-                      return _buildPlaceholderImage();
-                    },
-                  ),
+                      ),
+                  ],
                 ),
               )
                   : _buildPlaceholderImage(),
@@ -616,6 +704,37 @@ class _PropertyManagementState extends State<PropertyManagement> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             side: const BorderSide(color: Colors.blue),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: Icon(
+                            property.isFeatured
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            size: 16,
+                            color: property.isFeatured
+                                ? AppTheme.primaryRed
+                                : Colors.amber[700],
+                          ),
+                          label: Text(
+                            property.isFeatured ? 'Unfeature' : 'Feature',
+                            style: TextStyle(
+                              color: property.isFeatured
+                                  ? AppTheme.primaryRed
+                                  : Colors.amber[700],
+                            ),
+                          ),
+                          onPressed: () => _toggleFeatured(property),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            side: BorderSide(
+                              color: property.isFeatured
+                                  ? AppTheme.primaryRed
+                                  : Colors.amber[700]!,
+                            ),
                           ),
                         ),
                       ),
