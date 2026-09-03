@@ -393,7 +393,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'If you have any questions about this Privacy Policy, please contact us at:\n\n'
                           'Ho Rentals\n'
                           'Email: thehorentals@gmail.com\n'
-                          'Phone: 0557922593, 0595744526, 0599682185\n'
+                          'Phone: 0204940602, 0595744526, 0599682185\n'
                           'Address: Ho, Ghana'
                   ),
                 ],
@@ -509,7 +509,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildPolicySection('9. Contact Information',
                       'Ho Rentals\n'
                           'Email: thehorentals@gmail.com\n'
-                          'Phone: 0557922593, 0595744526, 0599682185\n'
+                          'Phone: 0204940602, 0595744526, 0599682185\n'
                           'Address: Ho, Ghana'
                   ),
                 ],
@@ -1034,8 +1034,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildHelpContactMethod(
                 icon: Icons.phone_rounded,
                 title: 'Call Us',
-                subtitle: '0557922593',
-                onTap: () => _launchPhone('0557922593'),
+                subtitle: '0204940602',
+                onTap: () => _launchPhone('0204940602'),
               ),
               const SizedBox(height: 12),
 
@@ -1050,8 +1050,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildHelpContactMethod(
                 icon: Icons.chat_rounded, //
                 title: 'WhatsApp',
-                subtitle: '0557922593',
-                onTap: () => _launchWhatsapp('0557922593'),
+                subtitle: '0204940602',
+                onTap: () => _launchWhatsapp('0204940602'),
               ),
 
               const SizedBox(height: 16),

@@ -128,9 +128,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             _buildContactOption(
               icon: Icons.call_rounded,
               title: 'Call Now',
-              subtitle: '055 792 2593',
+              subtitle: '020 494 0602',
               color: Colors.green,
-              onTap: () => _makePhoneCall('0557922593'),
+              onTap: () => _makePhoneCall('0204940602'),
             ),
             const SizedBox(height: 12),
             _buildContactOption(
@@ -138,7 +138,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               title: 'Send Message',
               subtitle: 'Start a chat conversation',
               color: Colors.blue,
-              onTap: () => _sendSms('0557922593'),
+              onTap: () => _sendSms('0204940602'),
             ),
             const SizedBox(height: 12),
             _buildContactOption(
@@ -146,7 +146,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               title: 'WhatsApp',
               subtitle: 'Contact via WhatsApp',
               color: Colors.green,
-              onTap: () => _openWhatsApp('0557922593'),
+              onTap: () => _openWhatsApp('0204940602'),
             ),
             const SizedBox(height: 20),
             OutlinedButton(

@@ -212,7 +212,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       'If you have any questions about this Privacy Policy, please contact us at:\n\n'
                           'Ho Rentals\n'
                           'Email: thehorentals@gmail.com\n'
-                          'Phone: 0557922593, 0595744526, 0599682185\n'
+                          'Phone: 0204940602, 0595744526, 0599682185\n'
                           'Address: Ho, Ghana'
                   ),
                 ],
@@ -328,7 +328,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   _buildPolicySection('9. Contact Information',
                       'Ho Rentals\n'
                           'Email: thehorentals@gmail.com\n'
-                          'Phone: 0557922593, 0595744526, 0599682185\n'
+                          'Phone: 0204940602, 0595744526, 0599682185\n'
                           'Address: Ho, Ghana'
                   ),
                 ],
