@@ -148,6 +148,17 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               color: Colors.green,
               onTap: () => _openWhatsApp('0204940602'),
             ),
+            const SizedBox(height: 12),
+            _buildContactOption(
+              icon: Icons.directions_car_rounded,
+              title: 'Request Yuyu Ride 🚗',
+              subtitle: 'Book a ride to inspect this property',
+              color: const Color(0xFF10B981),
+              onTap: () {
+                Navigator.pop(context);
+                _openYuyuRideWhatsApp();
+              },
+            ),
             const SizedBox(height: 20),
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
@@ -244,6 +255,45 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _openYuyuRideWhatsApp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userToken = prefs.getString('user_token');
+    final isLoggedIn = userToken != null && userToken.isNotEmpty;
+
+    if (!isLoggedIn) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in or sign up to book a ride with Yuyu Rides'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+
+    final propertyTitle = widget.property.title ?? 'Property Inspection';
+    final propertyLocation = widget.property.location ?? 'Ho, Ghana';
+    const yuyuNumber = "233000000000";
+
+    final text = "Hi Yuyu Rides! 🚗 I'd like to request a ride to inspect a property listed on HO Rentals:\n\n🏠 Property: $propertyTitle\n📍 Location: $propertyLocation";
+    final Uri url = Uri.parse("https://wa.me/$yuyuNumber?text=${Uri.encodeComponent(text)}");
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot launch Yuyu Rides WhatsApp'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -747,6 +797,19 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
       ),
       child: Row(
         children: [
+          IconButton(
+            onPressed: _openYuyuRideWhatsApp,
+            tooltip: 'Book Yuyu Ride',
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              padding: const EdgeInsets.all(14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.directions_car_rounded, color: Colors.white),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: OutlinedButton(
               onPressed: () => _showContactOptions(),
