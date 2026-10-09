@@ -33,14 +33,22 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 
   final List<String> _filters = ['All', 'Student Hostel', 'Single Room', 'Self-Contained', 'Chamber & Hall'];
   final List<String> _locations = [
-    'All Locations', 'HO Poly', 'Mirage', 'Barracks', 'Ahove', 'UHAS', 'NTC', 'New Town', 'Deme'
+    'All Locations',
+    'UHAS Sokode',
+    'HTU',
+    'UHAS Trafalgar',
+    'UHAS Dave',
+    'Mawuli Estate',
+    'Titrinu',
+    'Bankoe',
+    'Deme',
   ];
 
   final List<String> _propertyTypes = [
     'Student Hostel', 'Single Room', 'Self-Contained', 'Chamber & Hall', 'Furnished', 'Land', 'Shop'
   ];
 
-  final List<String> _cities = ['Accra', 'Ho', 'Kpando', 'Hohoe', 'Sogakope'];
+  final List<String> _cities = ['Ho', 'Accra', 'Kpando', 'Hohoe', 'Sogakope'];
 
   List<Property> _properties = [];
   bool _isLoading = true;
@@ -48,13 +56,14 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   List<Property> get _filteredProperties {
     return _properties.where((property) {
       final matchesFilter = _selectedFilter == 'All' || property.type == _selectedFilter;
-      final matchesLocation = _selectedLocation == 'All Locations' || property.location == _selectedLocation;
+      final matchesLocation = _selectedLocation == 'All Locations' ||
+          property.location.toLowerCase().contains(_selectedLocation.toLowerCase());
       final matchesPrice = property.price >= _minPrice && property.price <= _maxPrice;
 
       final matchesPropertyTypes = _selectedPropertyTypes.isEmpty ||
           _selectedPropertyTypes.contains(property.type);
       final matchesLocations = _selectedLocations.isEmpty ||
-          _selectedLocations.contains(property.location);
+          _selectedLocations.any((loc) => property.location.toLowerCase().contains(loc.toLowerCase()));
 
       return matchesFilter && matchesLocation && matchesPrice &&
           matchesPropertyTypes && matchesLocations;
@@ -1134,15 +1143,49 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: (displayImage == null || displayImage.isEmpty)
-                  ? Center(
-                child: Icon(
-                  Icons.home_work_rounded,
-                  color: AppTheme.primaryRed.withOpacity(0.5),
-                  size: 60,
-                ),
-              )
-                  : null,
+              child: Stack(
+                children: [
+                  if (displayImage == null || displayImage.isEmpty)
+                    Center(
+                      child: Icon(
+                        Icons.home_work_rounded,
+                        color: AppTheme.primaryRed.withValues(alpha: 0.5),
+                        size: 60,
+                      ),
+                    ),
+                  // Badges Overlay
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: (property.status?.toLowerCase() == 'rented' ? Colors.grey[800] : const Color(0xFF10B981))!,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        (property.status ?? 'available').toUpperCase(),
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        property.type,
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             // Property Details
@@ -1151,53 +1194,130 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    property.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textColor(context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      const Icon(
+                        Icons.location_on_rounded,
+                        color: AppTheme.primaryRed,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          property.title,
+                          property.location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textColor(context),
+                            fontSize: 14,
+                            color: AppTheme.textSecondaryColor(context),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Row(
+                  // Quick Specs Chips
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
-                      Icon(
-                        Icons.location_on_rounded,
-                        color: AppTheme.textSecondaryColor(context),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        property.location,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textSecondaryColor(context),
+                      if (property.advancePeriod != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFB45309)),
+                              const SizedBox(width: 4),
+                              Text(
+                                property.advancePeriod!,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFB45309)),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      if (property.meterType != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDBEAFE),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.electric_bolt_rounded, size: 12, color: Color(0xFF1D4ED8)),
+                              const SizedBox(width: 4),
+                              Text(
+                                property.meterType!,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (property.roomsAvailable != null && property.roomsAvailable!.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            '${property.roomsAvailable} Rms',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF047857)),
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        'GHC ${property.price}/month',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryRed,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            'GH₵ ${property.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.primaryRed,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '/ ${property.pricePeriod}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textSecondaryColor(context),
+                            ),
+                          ),
+                        ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryRed,
                           borderRadius: BorderRadius.circular(10),
@@ -1205,7 +1325,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                         child: const Text(
                           'View Details',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),

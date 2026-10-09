@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -82,6 +83,45 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     super.dispose();
   }
 
+  String get _contactPhone {
+    final raw = widget.property.contact;
+    if (raw != null && raw.trim().isNotEmpty) return raw.trim();
+    final ownerPhone = widget.property.owner?['phone']?.toString();
+    if (ownerPhone != null && ownerPhone.trim().isNotEmpty) return ownerPhone.trim();
+    return '0204940602';
+  }
+
+  String get _displayContactPhone {
+    final p = _contactPhone;
+    if (p.length == 10 && p.startsWith('0')) {
+      return '${p.substring(0, 3)} ${p.substring(3, 6)} ${p.substring(6)}';
+    }
+    return p;
+  }
+
+  void _shareProperty() {
+    final p = widget.property;
+    final shareText = "🏠 *${p.title}*\n"
+        "📍 Location: ${p.location}\n"
+        "💰 Price: GH₵ ${p.price.toStringAsFixed(0)} / ${p.pricePeriod}\n"
+        "🔗 Check it out on HO Rentals: ${p.shareUrl}";
+    Clipboard.setData(ClipboardData(text: shareText));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Listing details & link copied to clipboard!'),
+        backgroundColor: AppTheme.primaryRed,
+        action: SnackBarAction(
+          label: 'Open WhatsApp',
+          textColor: Colors.white,
+          onPressed: () {
+            final waUrl = Uri.parse("https://wa.me/?text=${Uri.encodeComponent(shareText)}");
+            launchUrl(waUrl, mode: LaunchMode.externalApplication);
+          },
+        ),
+      ),
+    );
+  }
+
   void _showContactOptions() {
     showModalBottomSheet(
       context: context,
@@ -102,71 +142,87 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              'Contact Agent',
+              'Contact Agent / Landlord',
               style: TextStyle(
                 fontSize: responsiveFontSize(context, 20),
                 fontWeight: FontWeight.w700,
                 color: AppTheme.textColor(context),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Text(
-              'Choose how you\'d like to contact the agent for "${widget.property.title}"',
+              'Property: "${widget.property.title}"',
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: responsiveFontSize(context, 14),
                 color: AppTheme.textSecondaryColor(context),
               ),
             ),
-            const SizedBox(height: 24),
-            _buildContactOption(
-              icon: Icons.call_rounded,
-              title: 'Call Now',
-              subtitle: '020 494 0602',
-              color: Colors.green,
-              onTap: () => _makePhoneCall('0204940602'),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             _buildContactOption(
               icon: Icons.chat_rounded,
-              title: 'Send Message',
-              subtitle: 'Start a chat conversation',
-              color: Colors.blue,
-              onTap: () => _sendSms('0204940602'),
+              title: 'WhatsApp Direct',
+              subtitle: 'Send instant message with listing specs',
+              color: const Color(0xFF25D366),
+              onTap: () {
+                Navigator.pop(context);
+                _openWhatsApp();
+              },
             ),
             const SizedBox(height: 12),
             _buildContactOption(
-              icon: Icons.contact_phone_rounded,
-              title: 'WhatsApp',
-              subtitle: 'Contact via WhatsApp',
+              icon: Icons.call_rounded,
+              title: 'Call Agent',
+              subtitle: _displayContactPhone,
               color: Colors.green,
-              onTap: () => _openWhatsApp('0204940602'),
+              onTap: () => _makePhoneCall(_contactPhone),
+            ),
+            const SizedBox(height: 12),
+            _buildContactOption(
+              icon: Icons.message_rounded,
+              title: 'Send SMS',
+              subtitle: 'Regular text message',
+              color: Colors.blue,
+              onTap: () => _sendSms(_contactPhone),
             ),
             const SizedBox(height: 12),
             _buildContactOption(
               icon: Icons.directions_car_rounded,
               title: 'Request Yuyu Ride 🚗',
-              subtitle: 'Book a ride to inspect this property',
+              subtitle: 'Book an inspection ride with driver',
               color: const Color(0xFF10B981),
               onTap: () {
                 Navigator.pop(context);
                 _openYuyuRideWhatsApp();
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            _buildContactOption(
+              icon: Icons.share_rounded,
+              title: 'Share Listing',
+              subtitle: 'Copy link or share to friends & family',
+              color: const Color(0xFF8B5CF6),
+              onTap: () {
+                Navigator.pop(context);
+                _shareProperty();
+              },
+            ),
+            const SizedBox(height: 16),
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.textSecondaryColor(context),
-                side: BorderSide(color: AppTheme.textSecondaryColor(context).withOpacity(0.3)),
+                side: BorderSide(color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                minimumSize: const Size(double.infinity, 50),
+                minimumSize: const Size(double.infinity, 48),
               ),
               child: const Text('Cancel'),
             ),
@@ -177,84 +233,73 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   }
 
   Future<void> _makePhoneCall(String? phoneNumber) async {
-    Navigator.pop(context);
-
-    if (phoneNumber == null || phoneNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No phone number available'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
+    final targetPhone = (phoneNumber != null && phoneNumber.isNotEmpty) ? phoneNumber : _contactPhone;
+    final Uri url = Uri(scheme: 'tel', path: targetPhone);
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cannot make call to $phoneNumber'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cannot make call to $targetPhone'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _sendSms(String? phoneNumber) async {
-    Navigator.pop(context);
-
-    if (phoneNumber == null || phoneNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No phone number available for SMS'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    final Uri url = Uri(scheme: 'sms', path: phoneNumber);
+    final targetPhone = (phoneNumber != null && phoneNumber.isNotEmpty) ? phoneNumber : _contactPhone;
+    final Uri url = Uri(scheme: 'sms', path: targetPhone);
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cannot send SMS to $phoneNumber'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cannot send SMS to $targetPhone'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Future<void> _openWhatsApp(String? phoneNumber) async {
-    Navigator.pop(context);
+  Future<void> _openWhatsApp([String? phoneNumber]) async {
+    final p = widget.property;
+    final targetPhone = (phoneNumber != null && phoneNumber.isNotEmpty)
+        ? phoneNumber
+        : _contactPhone;
+    final digits = targetPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final cleanNumber = digits.startsWith('0')
+        ? '233${digits.substring(1)}'
+        : digits.startsWith('233')
+            ? digits
+            : (digits.isNotEmpty ? '233$digits' : '233204940602');
 
-    if (phoneNumber == null || phoneNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No phone number available for WhatsApp'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+    final text = "Hello, I am interested in your property listed on HO Rentals:\n\n"
+        "📌 *${p.title}*\n"
+        "📍 Location: ${p.location}\n"
+        "💰 Price: GH₵ ${p.price.toStringAsFixed(0)} / ${p.pricePeriod}\n"
+        "${p.id != null ? '🆔 Listing ID: #${p.id}\n\n' : '\n'}"
+        "I would like to arrange a viewing.";
 
-    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
-    final Uri url = Uri.parse("https://wa.me/$cleanNumber");
+    final Uri url = Uri.parse("https://wa.me/$cleanNumber?text=${Uri.encodeComponent(text)}");
 
     if (await canLaunchUrl(url)) {
-      await launchUrl(url);
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot open WhatsApp'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot open WhatsApp'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -276,11 +321,13 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
       return;
     }
 
-    final propertyTitle = widget.property.title ?? 'Property Inspection';
-    final propertyLocation = widget.property.location ?? 'Ho, Ghana';
-    const yuyuNumber = "233000000000";
+    final propertyTitle = widget.property.title;
+    final propertyLocation = widget.property.location;
+    const yuyuNumber = "233538792644"; // Verified official Yuyu Rides partnership line
 
-    final text = "Hi Yuyu Rides! 🚗 I'd like to request a ride to inspect a property listed on HO Rentals:\n\n🏠 Property: $propertyTitle\n📍 Location: $propertyLocation";
+    final text = "Hi Yuyu Rides! 🚗 I'd like to request an inspection ride for a property listed on HO Rentals:\n\n"
+        "🏠 Property: $propertyTitle\n"
+        "📍 Location: $propertyLocation";
     final Uri url = Uri.parse("https://wa.me/$yuyuNumber?text=${Uri.encodeComponent(text)}");
 
     if (await canLaunchUrl(url)) {
@@ -367,8 +414,8 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppTheme.primaryRed.withOpacity(0.1),
-              AppTheme.gold.withOpacity(0.1),
+              AppTheme.primaryRed.withValues(alpha: 0.1),
+              AppTheme.gold.withValues(alpha: 0.1),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -380,7 +427,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             children: [
               Icon(
                 Icons.home_work_rounded,
-                color: AppTheme.primaryRed.withOpacity(0.5),
+                color: AppTheme.primaryRed.withValues(alpha: 0.5),
                 size: 80,
               ),
               const SizedBox(height: 8),
@@ -401,28 +448,52 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
       children: [
         SizedBox(
           height: 300,
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: images.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentImageIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: index == 0 
-                    ? Hero(
-                        tag: 'property_image_${widget.property.id}',
-                        child: _buildNetworkImage(images[index], context),
-                      )
-                    : _buildNetworkImage(images[index], context),
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: _pageController,
+                itemCount: images.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentImageIndex = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: index == 0 
+                        ? Hero(
+                            tag: 'property_image_${widget.property.id}',
+                            child: _buildNetworkImage(images[index], context),
+                          )
+                        : _buildNetworkImage(images[index], context),
+                    ),
+                  );
+                },
+              ),
+              if (images.length > 1)
+                Positioned(
+                  bottom: 12,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_currentImageIndex + 1} / ${images.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
-              );
-            },
+            ],
           ),
         ),
 
@@ -439,7 +510,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                   shape: BoxShape.circle,
                   color: _currentImageIndex == index
                       ? AppTheme.primaryRed
-                      : AppTheme.textSecondaryColor(context).withOpacity(0.3),
+                      : AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
                 ),
               );
             }),
@@ -453,20 +524,20 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
       imageUrl: url,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
-        color: AppTheme.primaryRed.withOpacity(0.1),
+        color: AppTheme.primaryRed.withValues(alpha: 0.1),
         child: const Center(
           child: CircularProgressIndicator(),
         ),
       ),
       errorWidget: (context, url, error) => Container(
-        color: AppTheme.primaryRed.withOpacity(0.1),
+        color: AppTheme.primaryRed.withValues(alpha: 0.1),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.broken_image_rounded,
-                color: AppTheme.primaryRed.withOpacity(0.5),
+                color: AppTheme.primaryRed.withValues(alpha: 0.5),
                 size: 60,
               ),
               const SizedBox(height: 8),
@@ -494,77 +565,183 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               child: Text(
                 property.title,
                 style: TextStyle(
-                  fontSize: responsiveFontSize(context, 24),
+                  fontSize: responsiveFontSize(context, 22),
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textColor(context),
                 ),
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppTheme.primaryRed.withOpacity(0.1),
+                color: (property.status?.toLowerCase() == 'rented' ? Colors.grey : AppTheme.primaryRed).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.primaryRed),
+                border: Border.all(color: property.status?.toLowerCase() == 'rented' ? Colors.grey : AppTheme.primaryRed),
               ),
               child: Text(
                 (property.status ?? 'available').toUpperCase(),
                 style: TextStyle(
-                  fontSize: responsiveFontSize(context, 12),
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primaryRed,
+                  fontSize: responsiveFontSize(context, 11),
+                  fontWeight: FontWeight.w700,
+                  color: property.status?.toLowerCase() == 'rented' ? Colors.grey : AppTheme.primaryRed,
                 ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Text(
-          'GHC ${property.price} / month',
-          style: TextStyle(
-            fontSize: responsiveFontSize(context, 28),
-            fontWeight: FontWeight.w800,
-            color: AppTheme.primaryRed,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              'GH₵ ${property.price.toStringAsFixed(0)}',
+              style: TextStyle(
+                fontSize: responsiveFontSize(context, 26),
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primaryRed,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '/ ${property.pricePeriod}',
+              style: TextStyle(
+                fontSize: responsiveFontSize(context, 14),
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondaryColor(context),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.location_on_rounded,
-              color: AppTheme.textSecondaryColor(context),
-              size: 20,
+              color: AppTheme.primaryRed,
+              size: 18,
             ),
-            const SizedBox(width: 8),
-            Text(
-              property.location,
-              style: TextStyle(
-                fontSize: responsiveFontSize(context, 16),
-                color: AppTheme.textSecondaryColor(context),
-                fontWeight: FontWeight.w500,
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                property.location,
+                style: TextStyle(
+                  fontSize: responsiveFontSize(context, 15),
+                  color: AppTheme.textColor(context),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Row(
+        const SizedBox(height: 14),
+        // Quick Specs Badges
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Icon(
-              Icons.category_rounded,
-              color: AppTheme.textSecondaryColor(context),
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              property.type,
-              style: TextStyle(
-                fontSize: responsiveFontSize(context, 16),
-                color: AppTheme.textSecondaryColor(context),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryRed.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.home_work_rounded, size: 14, color: AppTheme.primaryRed),
+                  const SizedBox(width: 5),
+                  Text(
+                    property.type,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primaryRed),
+                  ),
+                ],
               ),
             ),
+            if (property.advancePeriod != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.hourglass_top_rounded, size: 14, color: Color(0xFFB45309)),
+                    const SizedBox(width: 5),
+                    Text(
+                      property.advancePeriod!,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFB45309)),
+                    ),
+                  ],
+                ),
+              ),
+            if (property.meterType != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDBEAFE),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.electric_bolt_rounded, size: 14, color: Color(0xFF1D4ED8)),
+                    const SizedBox(width: 5),
+                    Text(
+                      property.meterType!,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8)),
+                    ),
+                  ],
+                ),
+              ),
+            if (property.waterSupply != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2FE),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.water_drop_rounded, size: 14, color: Color(0xFF0369A1)),
+                    const SizedBox(width: 5),
+                    Text(
+                      property.waterSupply!,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0369A1)),
+                    ),
+                  ],
+                ),
+              ),
+            if (property.roomsAvailable != null && property.roomsAvailable!.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD1FAE5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.bed_rounded, size: 14, color: Color(0xFF047857)),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${property.roomsAvailable} Rooms',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF047857)),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -572,7 +749,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -622,10 +799,10 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryRed.withOpacity(0.06),
+                        color: AppTheme.primaryRed.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: AppTheme.primaryRed.withOpacity(0.25),
+                          color: AppTheme.primaryRed.withValues(alpha: 0.25),
                         ),
                       ),
                       child: Row(
@@ -689,17 +866,48 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
             ),
             onPressed: () => Navigator.pop(context),
           ),
+          actions: [
+            IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
+              ),
+              onPressed: _shareProperty,
+              tooltip: 'Share Listing',
+            ),
+            IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: _isSaved ? AppTheme.primaryRed : Colors.white,
+                  size: 20,
+                ),
+              ),
+              onPressed: _toggleFavorite,
+              tooltip: _isSaved ? 'Saved' : 'Save',
+            ),
+            const SizedBox(width: 4),
+          ],
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: responsivePadding(context, horizontal: 24, vertical: 24),
+            padding: responsivePadding(context, horizontal: 20, vertical: 20),
             child: _buildPropertyInfo(property),
           ),
         ),
@@ -738,7 +946,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         decoration: BoxDecoration(
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 30,
                               offset: const Offset(0, 10),
                             ),
@@ -758,8 +966,8 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                 height: MediaQuery.of(context).size.height,
                 padding: const EdgeInsets.all(32.0),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardColor(context).withOpacity(0.5),
-                  border: Border(left: BorderSide(color: Colors.grey.withOpacity(0.1))),
+                  color: AppTheme.cardColor(context).withValues(alpha: 0.5),
+                  border: Border(left: BorderSide(color: Colors.grey.withValues(alpha: 0.1))),
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -780,13 +988,13 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
 
   Widget _buildBottomActions() {
     return Container(
-      padding: responsivePadding(context, horizontal: 24, vertical: 12),
+      padding: responsivePadding(context, horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         boxShadow: [
           if (!Responsive.isDesktop(context))
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -795,54 +1003,88 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             ? BorderRadius.circular(16) 
             : null,
       ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: _openYuyuRideWhatsApp,
-            tooltip: 'Book Yuyu Ride',
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              padding: const EdgeInsets.all(14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            icon: const Icon(Icons.directions_car_rounded, color: Colors.white),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => _showContactOptions(),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryRed,
-                side: const BorderSide(color: AppTheme.primaryRed),
-                padding: const EdgeInsets.symmetric(vertical: 16),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // Yuyu Rides Button
+            IconButton(
+              onPressed: _openYuyuRideWhatsApp,
+              tooltip: 'Book Yuyu Ride 🚗',
+              style: IconButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                padding: const EdgeInsets.all(12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Contact Agent'),
+              icon: const Icon(Icons.directions_car_rounded, color: Colors.white, size: 22),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
+            const SizedBox(width: 8),
+            // WhatsApp Direct Action Button (Hero CTA)
+            Expanded(
+              flex: 4,
+              child: ElevatedButton.icon(
+                onPressed: () => _openWhatsApp(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.chat_rounded, size: 18),
+                label: const Text(
+                  'WhatsApp',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Call / Options Button
+            Expanded(
+              flex: 3,
+              child: OutlinedButton(
+                onPressed: _showContactOptions,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.textColor(context),
+                  side: BorderSide(color: AppTheme.textSecondaryColor(context).withValues(alpha: 0.3)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Call / More',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Favorite Button
+            IconButton(
               onPressed: _isSaving ? null : _toggleFavorite,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isSaved ? Colors.grey : AppTheme.primaryRed,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              tooltip: _isSaved ? 'Saved' : 'Save to Favorites',
+              style: IconButton.styleFrom(
+                backgroundColor: _isSaved ? AppTheme.primaryRed.withValues(alpha: 0.1) : AppTheme.cardColor(context),
+                side: BorderSide(
+                  color: _isSaved ? AppTheme.primaryRed : AppTheme.textSecondaryColor(context).withValues(alpha: 0.3),
+                ),
+                padding: const EdgeInsets.all(12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              icon: Icon(_isSaved ? Icons.check : Icons.save, color: Colors.white),
-              label: Text(
-                _isSaved ? 'Saved' : 'Save',
-                style: const TextStyle(color: Colors.white),
+              icon: Icon(
+                _isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: _isSaved ? AppTheme.primaryRed : AppTheme.textColor(context),
+                size: 22,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

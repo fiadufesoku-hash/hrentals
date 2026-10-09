@@ -46,6 +46,39 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
   bool _isUploading = false;
   final bool _isLoading = false;
 
+  // Student & Ghanaian rental specifications
+  String _selectedAdvance = '1 Year';
+  String _selectedPricePeriod = 'month';
+  String _selectedMeterType = 'ECG Prepaid';
+  String _selectedWaterSupply = 'Polytank';
+  final TextEditingController _roomsController = TextEditingController();
+
+  final List<String> _advanceOptions = [
+    '1 Year',
+    '6 Months',
+    '2 Years',
+    'Monthly / No Adv.',
+  ];
+
+  final List<String> _pricePeriodOptions = [
+    'month',
+    'semester',
+    'year',
+  ];
+
+  final List<String> _meterOptions = [
+    'ECG Prepaid',
+    'ECG Separate Meter',
+    'ECG Shared Meter',
+  ];
+
+  final List<String> _waterOptions = [
+    'Polytank',
+    'Ghana Water',
+    'Borehole',
+    'Well Water',
+  ];
+
   // Amenities
   final Set<String> _selectedAmenities = {};
 
@@ -85,6 +118,31 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     _selectedType = property.type;
     _selectedStatus = property.status ?? 'available';
 
+    // Parse specs if available
+    if (property.advancePeriod != null) {
+      if (property.advancePeriod!.contains('6 Month')) {
+        _selectedAdvance = '6 Months';
+      } else if (property.advancePeriod!.contains('2 Year')) {
+        _selectedAdvance = '2 Years';
+      } else if (property.advancePeriod!.toLowerCase().contains('month')) {
+        _selectedAdvance = 'Monthly / No Adv.';
+      } else {
+        _selectedAdvance = '1 Year';
+      }
+    }
+    _selectedPricePeriod = property.pricePeriod;
+    if (property.meterType != null) {
+      _selectedMeterType = property.meterType!.contains('Separate')
+          ? 'ECG Separate Meter'
+          : (property.meterType!.contains('Shared') ? 'ECG Shared Meter' : 'ECG Prepaid');
+    }
+    if (property.waterSupply != null) {
+      _selectedWaterSupply = property.waterSupply!;
+    }
+    if (property.roomsAvailable != null) {
+      _roomsController.text = property.roomsAvailable!;
+    }
+
     // Load amenities from encoded description
     _selectedAmenities.addAll(property.amenities);
 
@@ -92,12 +150,6 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     if (property.images.isNotEmpty) {
       _uploadedImageUrls = List<String>.from(property.images);
     }
-
-    print('📝 Editing property: ${property.title}');
-    print('   Type: ${property.type}');
-    print('   Status: ${property.status}');
-    print('   Images: ${_uploadedImageUrls.length}');
-    print('   Amenities: ${_selectedAmenities.toList()}');
   }
 
   @override
@@ -107,7 +159,38 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     _locationController.dispose();
     _priceController.dispose();
     _contactController.dispose();
+    _roomsController.dispose();
     super.dispose();
+  }
+
+  void _moveImage(int fromIndex, int toIndex) {
+    if (fromIndex < 0 || fromIndex >= _uploadedImageUrls.length ||
+        toIndex < 0 || toIndex >= _uploadedImageUrls.length) {
+      return;
+    }
+    setState(() {
+      final item = _uploadedImageUrls.removeAt(fromIndex);
+      _uploadedImageUrls.insert(toIndex, item);
+    });
+  }
+
+  void _setAsCover(int index) {
+    if (index <= 0 || index >= _uploadedImageUrls.length) {
+      return;
+    }
+    setState(() {
+      final item = _uploadedImageUrls.removeAt(index);
+      _uploadedImageUrls.insert(0, item);
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⭐ Image set as primary cover photo'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   // UPDATED: Save property with new image upload system
@@ -130,9 +213,24 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
       // Upload any remaining selected files
       await _uploadSelectedImages();
 
-      // Encode amenities into the description
+      // Construct student specs features string compatible with web app:
+      final featureList = <String>[];
+      if (_roomsController.text.trim().isNotEmpty) {
+        featureList.add('Rooms Available: ${_roomsController.text.trim()}');
+      }
+      featureList.add('Advance Required: $_selectedAdvance');
+      featureList.add('PricePeriod: per $_selectedPricePeriod');
+      featureList.add('Electricity: $_selectedMeterType');
+      featureList.add('Water: $_selectedWaterSupply');
+
+      final baseDesc = _descriptionController.text.trim();
+      final fullDescWithFeatures = featureList.isNotEmpty
+          ? '$baseDesc\n\nFeatures: ${featureList.join(' | ')}'
+          : baseDesc;
+
+      // Encode amenities into description
       final encodedDescription = Property.encodeDescription(
-        _descriptionController.text.trim(),
+        fullDescWithFeatures,
         _selectedAmenities.toList(),
       );
 
@@ -149,7 +247,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
           imageUrls: _uploadedImageUrls,
         );
       } else {
-        // ✅ FIXED: UPDATE EXISTING PROPERTY
+        // UPDATE EXISTING PROPERTY
         await GraphQLService.updateProperty(
           id: widget.propertyToEdit!.id!,
           title: _titleController.text.trim(),
@@ -441,9 +539,8 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     );
   }
 
-  // NEW: Extracted   image carousel widget
+  // Enhanced image carousel widget with reordering & cover photo badges
   Widget _buildImageCarousel() {
-    // Total images: uploaded + mobile selected + web selected
     final totalImages = _uploadedImageUrls.length + _selectedImageFiles.length + _selectedWebFiles.length;
 
     if (totalImages == 0) {
@@ -468,50 +565,78 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Images: $totalImages / 10', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Photos: $totalImages / 10', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black54)),
+            const Text('⭐ Image 1 is Cover Photo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFD97706))),
+          ],
+        ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 200,
+          height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: totalImages,
             itemBuilder: (context, index) {
               Widget imageWidget;
-              String label;
+              final isCover = index == 0;
+              final isUploaded = index < _uploadedImageUrls.length;
 
               if (index < _uploadedImageUrls.length) {
-                // Network images
                 imageWidget = _buildImageWidget(_uploadedImageUrls[index], index);
-                label = "Uploaded";
               } else if (index < _uploadedImageUrls.length + _selectedImageFiles.length) {
-                // Mobile files
                 final fileIndex = index - _uploadedImageUrls.length;
                 imageWidget = _buildSelectedFileWidget(_selectedImageFiles[fileIndex], fileIndex);
-                label = "Selected";
               } else {
-                // Web files
                 final webIndex = index - _uploadedImageUrls.length - _selectedImageFiles.length;
                 imageWidget = _buildSelectedWebFileWidget(_selectedWebFiles[webIndex], webIndex);
-                label = "Selected";
               }
 
               return Container(
-                width: 150,
+                width: 170,
                 margin: EdgeInsets.only(right: index < totalImages - 1 ? 12 : 0),
                 child: Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: isCover ? 4 : 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: isCover
+                        ? const BorderSide(color: Color(0xFFF59E0B), width: 2)
+                        : BorderSide.none,
+                  ),
                   child: Stack(
                     children: [
                       ClipRRect(borderRadius: BorderRadius.circular(12), child: imageWidget),
-                      // Close button
+                      // Cover Badge or Number
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isCover ? const Color(0xFFF59E0B) : Colors.black54,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            isCover ? '⭐ Cover' : '#${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Close / Remove button
                       Positioned(
                         top: 8,
                         right: 8,
                         child: Container(
                           decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
                           child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                            icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(),
                             onPressed: () {
                               if (index < _uploadedImageUrls.length) {
                                 _removeImage(index);
@@ -526,14 +651,65 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
                           ),
                         ),
                       ),
-                      // Label
+                      // Bottom Controls: Reorder arrows & Set Cover
                       Positioned(
-                        bottom: 8,
-                        left: 8,
+                        bottom: 6,
+                        left: 6,
+                        right: 6,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
-                          child: Text('$label ${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Shift Left
+                              if (index > 0 && isUploaded)
+                                InkWell(
+                                  onTap: () => _moveImage(index, index - 1),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: Icon(Icons.arrow_back_ios_rounded, size: 14, color: Colors.white),
+                                  ),
+                                )
+                              else
+                                const SizedBox(width: 22),
+                              // Make Cover Button
+                              if (!isCover && isUploaded)
+                                InkWell(
+                                  onTap: () => _setAsCover(index),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    child: Text(
+                                      'Set Cover',
+                                      style: TextStyle(color: Color(0xFFFBBF24), fontSize: 10, fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Text(
+                                  isCover ? 'Primary' : 'Photo',
+                                  style: TextStyle(
+                                    color: isCover ? const Color(0xFFFBBF24) : Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              // Shift Right
+                              if (index < _uploadedImageUrls.length - 1 && isUploaded)
+                                InkWell(
+                                  onTap: () => _moveImage(index, index + 1),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white),
+                                  ),
+                                )
+                              else
+                                const SizedBox(width: 22),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -784,10 +960,100 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
                 child: TextFormField(
                   controller: _contactController,
                   decoration: const InputDecoration(
-                    labelText: 'Contact Number',
+                    labelText: 'Contact Phone Number (Ghana) *',
+                    hintText: 'e.g. 024 123 4567',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone),
                   ),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a contact phone number';
+                    }
+                    final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                    if (clean.length < 9) {
+                      return 'Please enter a valid phone number (e.g. 0241234567)';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+
+              // RENTAL TERMS & STUDENT SPECIFICATIONS CARD
+              _buildCardSection(
+                title: 'Rental Terms & Specifications',
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedAdvance,
+                            decoration: const InputDecoration(
+                              labelText: 'Advance Required *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.hourglass_top_rounded),
+                            ),
+                            items: _advanceOptions.map((opt) => DropdownMenuItem(value: opt, child: Text(opt, style: const TextStyle(fontSize: 13)))).toList(),
+                            onChanged: (val) => setState(() => _selectedAdvance = val!),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedPricePeriod,
+                            decoration: const InputDecoration(
+                              labelText: 'Billing Period *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.calendar_month_rounded),
+                            ),
+                            items: _pricePeriodOptions.map((opt) => DropdownMenuItem(value: opt, child: Text('per $opt', style: const TextStyle(fontSize: 13)))).toList(),
+                            onChanged: (val) => setState(() => _selectedPricePeriod = val!),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedMeterType,
+                            decoration: const InputDecoration(
+                              labelText: 'Electricity Meter',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.electric_bolt_rounded),
+                            ),
+                            items: _meterOptions.map((opt) => DropdownMenuItem(value: opt, child: Text(opt, style: const TextStyle(fontSize: 12)))).toList(),
+                            onChanged: (val) => setState(() => _selectedMeterType = val!),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedWaterSupply,
+                            decoration: const InputDecoration(
+                              labelText: 'Water Supply',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.water_drop_rounded),
+                            ),
+                            items: _waterOptions.map((opt) => DropdownMenuItem(value: opt, child: Text(opt, style: const TextStyle(fontSize: 13)))).toList(),
+                            onChanged: (val) => setState(() => _selectedWaterSupply = val!),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _roomsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Rooms Available (Optional)',
+                        hintText: 'e.g. 1 Room or 2 Rooms',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.bed_rounded),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 

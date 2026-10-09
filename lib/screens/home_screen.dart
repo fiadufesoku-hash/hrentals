@@ -39,6 +39,19 @@ class _HomeScreenState extends State<HomeScreen> {
   // Local state for filter criteria
   String _searchQuery = '';
   String _activeTypeFilter = 'All';
+  String _activeLocalityFilter = 'All';
+
+  final List<String> _localityChips = [
+    'All Ho',
+    'UHAS Sokode',
+    'HTU',
+    'UHAS Trafalgar',
+    'UHAS Dave',
+    'Mawuli Estate',
+    'Titrinu',
+    'Bankoe',
+    'Deme',
+  ];
 
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _minPriceController = TextEditingController();
@@ -215,6 +228,16 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
+      if (_activeLocalityFilter != 'All' && _activeLocalityFilter != 'All Ho') {
+        final locFilter = _activeLocalityFilter.toLowerCase();
+        filtered = filtered.where((p) {
+          final loc = p.location.toLowerCase();
+          final desc = (p.description ?? '').toLowerCase();
+          final title = p.title.toLowerCase();
+          return loc.contains(locFilter) || desc.contains(locFilter) || title.contains(locFilter);
+        }).toList();
+      }
+
       if (_searchQuery.isNotEmpty) {
         filtered = filtered.where((p) =>
         p.title.toLowerCase().contains(_searchQuery) ||
@@ -285,6 +308,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   else
                     Row(
                       children: [
+                        IconButton(
+                          icon: const Icon(Icons.help_outline_rounded, color: AppTheme.primaryRed),
+                          tooltip: 'Contact Support',
+                          onPressed: _showContactInfo,
+                        ),
                         IconButton(
                           icon: const Icon(Icons.search_rounded, color: AppTheme.primaryRed),
                           onPressed: () => setState(() => _showSearchBar = true),
@@ -436,7 +464,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+              // Campus & Locality Quick Chips
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 32,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: responsivePadding(context, horizontal: 16),
+                    children: _localityChips.map((loc) {
+                      final isSelected = _activeLocalityFilter == loc || (_activeLocalityFilter == 'All' && loc == 'All Ho');
+                      return _localityChip(loc, isSelected);
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverPadding(
                 padding: responsivePadding(context, horizontal: 16, vertical: 16),
                 sliver: SliverToBoxAdapter(
@@ -568,6 +611,35 @@ class _HomeScreenState extends State<HomeScreen> {
           fontSize: responsiveFontSize(context, 12),
         )),
       ]),
+    ),
+  );
+
+  Widget _localityChip(String loc, bool sel) => GestureDetector(
+    onTap: () {
+      setState(() => _activeLocalityFilter = (loc == 'All Ho' ? 'All' : loc));
+      _applyFilters();
+    },
+    child: Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: sel ? AppTheme.primaryRed.withOpacity(0.12) : AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: sel ? AppTheme.primaryRed : Colors.grey.withOpacity(0.2),
+          width: sel ? 1.2 : 0.8,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          loc,
+          style: TextStyle(
+            color: sel ? AppTheme.primaryRed : AppTheme.textSecondaryColor(context),
+            fontSize: responsiveFontSize(context, 11),
+            fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
     ),
   );
 
@@ -1357,130 +1429,276 @@ class _PropertyCardDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
+    final advance = p.advancePeriod;
+    final meter = p.meterType;
+    final rooms = p.roomsAvailable;
+    final cleanDesc = p.plainDescription;
+
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : responsivePadding(context, horizontal: 12).horizontal / 2,
-        vertical: isMobile ? 10 : 12,
+        horizontal: isMobile ? 14 : 16,
+        vertical: isMobile ? 12 : 14,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Header Badges Row: Status & Type ──
+          Row(
+            children: [
+              _buildStatusBadge(context),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textSecondaryColor(context).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    p.type,
+                    style: TextStyle(
+                      fontSize: responsiveFontSize(context, 10.5),
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondaryColor(context),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // ── Title ──
           Text(
             p.title,
             style: TextStyle(
-              fontSize: responsiveFontSize(context, isMobile ? 14 : 16),
-              fontWeight: FontWeight.w700,
+              fontSize: responsiveFontSize(context, isMobile ? 15 : 17),
+              fontWeight: FontWeight.w800,
               color: AppTheme.textColor(context),
             ),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
-          SizedBox(height: isMobile ? 4 : 8),
+          const SizedBox(height: 4),
+
+          // ── Location Row ──
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.location_on_rounded,
-                size: 13,
-                color: AppTheme.textSecondaryColor(context),
+                size: 14,
+                color: AppTheme.primaryRed,
               ),
               const SizedBox(width: 3),
               Expanded(
                 child: Text(
                   p.location,
                   style: TextStyle(
-                    fontSize: responsiveFontSize(context, isMobile ? 12 : 13),
+                    fontSize: responsiveFontSize(context, isMobile ? 12.5 : 13.5),
                     color: AppTheme.textSecondaryColor(context),
-                    overflow: TextOverflow.ellipsis,
+                    fontWeight: FontWeight.w500,
                   ),
+                  overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
               ),
             ],
           ),
-          SizedBox(height: isMobile ? 4 : 8),
-          Text(
-            'GHC ${p.price.toInt()} / month',
-            style: TextStyle(
-              fontSize: responsiveFontSize(context, isMobile ? 15 : 18),
-              fontWeight: FontWeight.w800,
-              color: AppTheme.primaryRed,
-            ),
-          ),
-          SizedBox(height: isMobile ? 6 : 10),
-          // Amenity chips
-          if (p.amenities.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: p.amenities.take(isMobile ? 3 : 5).map((key) {
-                  final amenity = kAmenities.firstWhere(
-                    (a) => a['key'] == key,
-                    orElse: () => {'key': key, 'label': key, 'icon': 0xe1a5},
-                  );
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryRed.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppTheme.primaryRed.withOpacity(0.2),
+          const SizedBox(height: 8),
+
+          // ── Primary Specs Badges Row (Advance, Meter, Rooms) ──
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: [
+              if (advance != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_rounded, size: 11, color: Color(0xFF059669)),
+                      const SizedBox(width: 3),
+                      Text(
+                        '$advance Adv.',
+                        style: TextStyle(
+                          fontSize: responsiveFontSize(context, 10.5),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF059669),
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          IconData(amenity['icon'] as int, fontFamily: 'MaterialIcons'),
-                          size: 10,
+                    ],
+                  ),
+                ),
+
+              if (meter != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFFD97706)),
+                      const SizedBox(width: 2),
+                      Text(
+                        meter,
+                        style: TextStyle(
+                          fontSize: responsiveFontSize(context, 10.5),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFD97706),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (rooms != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.bed_rounded, size: 11, color: Color(0xFF2563EB)),
+                      const SizedBox(width: 3),
+                      Text(
+                        '$rooms ${rooms == '1' ? 'Room' : 'Rooms'} Avail.',
+                        style: TextStyle(
+                          fontSize: responsiveFontSize(context, 10.5),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Amenities preview
+              ...p.amenities.take(3).map((key) {
+                final amenity = kAmenities.firstWhere(
+                  (a) => a['key'] == key,
+                  orElse: () => {'key': key, 'label': key, 'icon': 0xe1a5},
+                );
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryRed.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.primaryRed.withOpacity(0.15)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        IconData(amenity['icon'] as int, fontFamily: 'MaterialIcons'),
+                        size: 10,
+                        color: AppTheme.primaryRed,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        amenity['label'] as String,
+                        style: TextStyle(
+                          fontSize: responsiveFontSize(context, 10),
                           color: AppTheme.primaryRed,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(width: 3),
-                        Text(
-                          amenity['label'] as String,
-                          style: TextStyle(
-                            fontSize: responsiveFontSize(context, 9.5),
-                            color: AppTheme.primaryRed,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+
+          if (cleanDesc.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              cleanDesc,
+              style: TextStyle(
+                fontSize: responsiveFontSize(context, 11.5),
+                color: AppTheme.textSecondaryColor(context).withOpacity(0.85),
+                height: 1.3,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          SizedBox(height: isMobile ? 2 : 4),
+          ],
+
+          const SizedBox(height: 10),
+
+          // ── Divider & Price Footer Row ──
+          Divider(height: 1, color: Colors.grey.withOpacity(0.15)),
+          const SizedBox(height: 10),
+
           Row(
             children: [
-              _buildStatusBadge(context),
-              const Spacer(),
-              SizedBox(
-                height: isMobile ? 32 : 38,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => PropertyDetailsScreen(property: p)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'GH₵ ${p.price.toInt()} ',
+                            style: TextStyle(
+                              fontSize: responsiveFontSize(context, isMobile ? 16 : 18),
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.primaryRed,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '/ ${p.pricePeriod}',
+                            style: TextStyle(
+                              fontSize: responsiveFontSize(context, 11.5),
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.textSecondaryColor(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => PropertyDetailsScreen(property: p)),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryRed,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 14 : 20,
+                    vertical: 8,
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryRed,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 12 : 20,
-                      vertical: 0,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(
-                    'View',
-                    style: TextStyle(
-                      fontSize: responsiveFontSize(context, isMobile ? 12 : 12),
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  'View',
+                  style: TextStyle(
+                    fontSize: responsiveFontSize(context, 12),
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -1491,27 +1709,25 @@ class _PropertyCardDetails extends StatelessWidget {
     );
   }
 
-  Container _buildStatusBadge(BuildContext context) {
+  Widget _buildStatusBadge(BuildContext context) {
     final status = p.status?.toLowerCase() ?? 'available';
-    final color = status == 'available' ? Colors.green : (status == 'taken' ? Colors.red : Colors.orange);
-    final text = status.toUpperCase();
+    final isAvailable = status == 'available';
+    final color = isAvailable ? const Color(0xFF10B981) : const Color(0xFFEF4444);
 
     return Container(
-      padding: responsivePadding(context, horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: color,
-          width: 1,
-        ),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
-        text,
+        isAvailable ? 'AVAILABLE' : 'RENTED',
         style: TextStyle(
-          fontSize: responsiveFontSize(context, 11),
-          fontWeight: FontWeight.w600,
+          fontSize: responsiveFontSize(context, 10),
+          fontWeight: FontWeight.w800,
           color: color,
+          letterSpacing: 0.3,
         ),
       ),
     );

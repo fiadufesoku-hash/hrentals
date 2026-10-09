@@ -291,6 +291,23 @@ class Property {
 
   // ─── Amenity helpers ────────────────────────────────────────────────────────
 
+  /// Formats advance payment period into readable string (e.g. "1 Year", "6 Months", "2 Years").
+  static String formatAdvanceLabel(String? advanceStr) {
+    if (advanceStr == null || advanceStr.trim().isEmpty) return '1 Year';
+    var cleaned = advanceStr.trim();
+    cleaned = cleaned.replaceAll(RegExp(r'\s*\((?:per|for)\s+[^)]+\)', caseSensitive: false), '');
+    cleaned = cleaned.replaceAll(RegExp(r'\s+per\s+(?:year|month|semester|academic year|day|plot|acre)', caseSensitive: false), '');
+    cleaned = cleaned.replaceAll(RegExp(r'\s+(?:advance|payment|required)\b', caseSensitive: false), '');
+
+    // Capitalize words
+    cleaned = cleaned.split(' ').map((w) {
+      if (w.isEmpty) return w;
+      return w[0].toUpperCase() + w.substring(1).toLowerCase();
+    }).join(' ');
+
+    return cleaned.trim().isEmpty ? '1 Year' : cleaned.trim();
+  }
+
   /// Encode a list of amenity keys + a plain description into one string.
   static String encodeDescription(String plainDescription, List<String> amenityKeys) {
     final desc = plainDescription.trim();
@@ -299,24 +316,56 @@ class Property {
     return '$desc$_kAmenityDelimiter$encoded$_kAmenityEnd';
   }
 
-  /// Extract the human-readable description (without the amenity suffix).
+  /// Extract the human-readable description (without the amenity/features suffix).
   static String decodeDescription(String? raw) {
     if (raw == null || raw.isEmpty) return '';
-    final idx = raw.indexOf(_kAmenityDelimiter);
-    if (idx == -1) return raw.trim();
-    return raw.substring(0, idx).trim();
+    var text = raw;
+    final idx = text.indexOf(_kAmenityDelimiter);
+    if (idx != -1) {
+      text = text.substring(0, idx);
+    }
+    final featIdx = text.toLowerCase().indexOf('\n\nfeatures:');
+    if (featIdx != -1) {
+      text = text.substring(0, featIdx);
+    } else {
+      final featIdx2 = text.toLowerCase().indexOf('features:');
+      if (featIdx2 != -1) {
+        text = text.substring(0, featIdx2);
+      }
+    }
+    return text.trim();
   }
 
   /// Extract the list of amenity keys stored in the description.
   static List<String> decodeAmenities(String? raw) {
     if (raw == null || raw.isEmpty) return [];
+    final amenities = <String>{};
+
+    // Check delimiter format
     final start = raw.indexOf(_kAmenityDelimiter);
-    if (start == -1) return [];
-    final after = raw.substring(start + _kAmenityDelimiter.length);
-    final end = after.indexOf(_kAmenityEnd);
-    final encoded = end == -1 ? after : after.substring(0, end);
-    if (encoded.trim().isEmpty) return [];
-    return encoded.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (start != -1) {
+      final after = raw.substring(start + _kAmenityDelimiter.length);
+      final end = after.indexOf(_kAmenityEnd);
+      final encoded = end == -1 ? after : after.substring(0, end);
+      if (encoded.trim().isNotEmpty) {
+        amenities.addAll(encoded.split(',').map((e) => e.trim().toLowerCase()).where((e) => e.isNotEmpty));
+      }
+    }
+
+    // Check features text in description
+    final lower = raw.toLowerCase();
+    if (lower.contains('wifi') || lower.contains('wi-fi')) amenities.add('wifi');
+    if (lower.contains('water') || lower.contains('polytank') || lower.contains('borehole')) amenities.add('water');
+    if (lower.contains('electricity') || lower.contains('meter')) amenities.add('electricity');
+    if (lower.contains('security') || lower.contains('gated') || lower.contains('fenced')) amenities.add('security');
+    if (lower.contains('parking')) amenities.add('parking');
+    if (lower.contains('bathroom') || lower.contains('self contain') || lower.contains('self-contain')) amenities.add('bathroom');
+    if (lower.contains('kitchen')) amenities.add('kitchen');
+    if (lower.contains('furnished')) amenities.add('furnished');
+    if (lower.contains('ac') || lower.contains('air condition')) amenities.add('ac');
+    if (lower.contains('cctv')) amenities.add('cctv');
+
+    return amenities.toList();
   }
 
   /// Convenience getter — amenity keys for this property.
@@ -324,6 +373,75 @@ class Property {
 
   /// Convenience getter — plain description without amenity data.
   String get plainDescription => decodeDescription(description);
+
+  /// Advance payment requirement (e.g. "1 Year", "6 Months", "2 Years")
+  String? get advancePeriod {
+    final raw = description ?? '';
+    final match = RegExp(r'(?:Advance Required|Advance period|Advance Payment|Advance):\s*([^.\n|]+)', caseSensitive: false).firstMatch(raw);
+    if (match != null && match.group(1) != null) {
+      return formatAdvanceLabel(match.group(1));
+    }
+    return null;
+  }
+
+  /// Price billing period (e.g. "month", "semester", "year")
+  String get pricePeriod {
+    final raw = (description ?? '').toLowerCase();
+    if (raw.contains('priceperiod: per year') || raw.contains('priceperiod: year') || raw.contains('per year') || raw.contains('/year') || raw.contains('/yr')) {
+      return 'year';
+    }
+    if (raw.contains('priceperiod: per month') || raw.contains('priceperiod: month') || raw.contains('per month') || raw.contains('/month')) {
+      return 'month';
+    }
+    if (raw.contains('per semester') || raw.contains('semester') || raw.contains('/sem')) {
+      return 'semester';
+    }
+    return 'month';
+  }
+
+  /// Number of rooms available if specified
+  String? get roomsAvailable {
+    final raw = description ?? '';
+    final match = RegExp(r'(?:Rooms Available|Rooms):\s*([^.\n|]+)', caseSensitive: false).firstMatch(raw);
+    return match?.group(1)?.trim();
+  }
+
+  /// Electricity meter type (e.g. "Prepaid", "Separate Meter", "Shared Meter")
+  String? get meterType {
+    final raw = (description ?? '').toLowerCase();
+    if (raw.contains('ecg separate meter') || raw.contains('separate meter')) return 'Separate Meter';
+    if (raw.contains('ecg prepaid') || raw.contains('prepaid')) return 'Prepaid';
+    if (raw.contains('ecg shared meter') || raw.contains('shared meter')) return 'Shared Meter';
+    return null;
+  }
+
+  /// Water supply type (e.g. "Polytank", "Ghana Water", "Borehole")
+  String? get waterSupply {
+    final raw = (description ?? '').toLowerCase();
+    if (raw.contains('polytank')) return 'Polytank';
+    if (raw.contains('ghana water')) return 'Ghana Water';
+    if (raw.contains('borehole')) return 'Borehole';
+    if (raw.contains('well')) return 'Well Water';
+    return null;
+  }
+
+  /// Formatted contact phone for WhatsApp (Ghanaian international format 233...)
+  String get whatsappNumber {
+    final raw = (contact != null && contact!.isNotEmpty)
+        ? contact!
+        : (owner?['phone']?.toString() ?? '0204940602');
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.startsWith('0')) {
+      return '233${digits.substring(1)}';
+    }
+    if (digits.startsWith('233')) {
+      return digits;
+    }
+    return digits.isNotEmpty ? '233$digits' : '233204940602';
+  }
+
+  /// Official share URL
+  String get shareUrl => 'https://horentals.com/properties/${id ?? ''}';
 
   // ────────────────────────────────────────────────────────────────────────────
 
