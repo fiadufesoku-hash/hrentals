@@ -423,15 +423,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Text(
                                     'Find Your Perfect\nStudent Home',
                                     style: TextStyle(
-                                      fontSize: responsiveFontSize(context, 15),
+                                      fontSize: responsiveFontSize(context, 16),
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white,
                                       height: 1.2,
                                     ),
                                   ),
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Ho Polytechnic · UHAS · Trafalgar',
+                                    'HTU · UHAS · Trafalgar · Sokode',
                                     style: TextStyle(
                                       color: Colors.white70,
                                       fontSize: responsiveFontSize(context, 11),
@@ -440,10 +440,119 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.home_work_rounded, size: 36, color: Colors.white24),
+                            const SizedBox(width: 10),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.asset(
+                                'assets/student_campus_vibe.jpg',
+                                width: 72,
+                                height: 56,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.home_work_rounded, size: 36, color: Colors.white24),
+                              ),
+                            ),
                           ],
                         ),
+                  ),
+                ),
+              ),
+              // Ho Rentals × Yuyu Rides Partnership Banner
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: Responsive.isMobile(context)
+                      ? const EdgeInsets.symmetric(horizontal: 16, vertical: 4)
+                      : responsivePadding(context, horizontal: 16, vertical: 6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardColor(context),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Ho Rentals Logo
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/logo.png',
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            '×',
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.grey),
+                          ),
+                        ),
+                        // Yuyu Rides Logo
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/yuyu_rides_logo.jpg',
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.directions_car_rounded, color: Color(0xFF10B981)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Text description
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Find Home. Ride with Yuyu.',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                              Text(
+                                'Official inspection ride partner in Ho',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.textSecondaryColor(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.directions_car_rounded, size: 13, color: Color(0xFF059669)),
+                              SizedBox(width: 4),
+                              Text(
+                                'RIDE',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF059669),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

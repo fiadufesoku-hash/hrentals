@@ -199,6 +199,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               title: 'Request Yuyu Ride 🚗',
               subtitle: 'Book an inspection ride with driver',
               color: const Color(0xFF10B981),
+              imageAsset: 'assets/yuyu_rides_logo.jpg',
               onTap: () {
                 Navigator.pop(context);
                 _openYuyuRideWhatsApp();
@@ -350,6 +351,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
+    String? imageAsset,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -362,15 +364,34 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
+            imageAsset != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.asset(
+                      imageAsset,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  )
+                : Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 20),
+                  ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -831,6 +852,73 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        // Official Yuyu Rides Partner Section
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10B981).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/yuyu_rides_logo.jpg',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.directions_car_rounded, color: Colors.white, size: 26),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Yuyu Rides Partner',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF065F46)),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('VERIFIED', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Book a verified inspection ride directly to this property in Ho.',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor(context)),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _openYuyuRideWhatsApp,
+                tooltip: 'Book Inspection Ride',
+                icon: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF059669)),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1013,12 +1101,21 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               tooltip: 'Book Yuyu Ride 🚗',
               style: IconButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              icon: const Icon(Icons.directions_car_rounded, color: Colors.white, size: 22),
+              icon: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/yuyu_rides_logo.jpg',
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.directions_car_rounded, color: Colors.white, size: 22),
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             // WhatsApp Direct Action Button (Hero CTA)

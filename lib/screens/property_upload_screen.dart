@@ -361,7 +361,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
     try {
       print('🖼️ Uploading images...');
 
-      final uri = Uri.parse('https://hrentals-backend-production.up.railway.app/api/upload-multiple');
+      final uri = Uri.parse(GraphQLService.uploadMultipleUrl);
       final request = http.MultipartRequest('POST', uri);
 
       // --- MOBILE FILES ---
@@ -731,7 +731,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
 
     try {
       // Test 1: Backend health
-      final healthResponse = await http.get(Uri.parse('https://hrentals-backend-production.up.railway.app/health'));
+      final healthResponse = await http.get(Uri.parse(GraphQLService.healthUrl));
       print('   ✅ Backend health: ${healthResponse.statusCode}');
 
       // Test 2: GraphQL
@@ -740,7 +740,7 @@ class _PropertyUploadScreenState extends State<PropertyUploadScreen> {
 
       // Test 3: Upload endpoint
       print('3. Testing upload endpoint...');
-      final uploadTest = await http.get(Uri.parse('https://hrentals-backend-production.up.railway.app/api/upload'));
+      final uploadTest = await http.get(Uri.parse(GraphQLService.uploadUrl));
       print('   ✅ Upload endpoint: ${uploadTest.statusCode}');
 
       // Test 4: Check login

@@ -112,9 +112,8 @@ class GraphQLService {
       return 'https://hrentals-backend-production.up.railway.app';
     }
 
-    // For development - check if you want to use Railway or local
-    // You can add a flag to switch between them
-    const bool useRailwayInDev = true; // Set this based on your needs
+    // For development - switch between Railway or local
+    const bool useRailwayInDev = false; // Set to true when Railway service is deployed
 
     if (useRailwayInDev) {
       return 'https://hrentals-backend-production.up.railway.app';
@@ -128,8 +127,11 @@ class GraphQLService {
       }
     }
   }
-  static String get _graphqlUrl => '$_baseUrl/graphql';
-  static String get _uploadUrl => '$_baseUrl/api/upload';
+  static String get baseUrl => _baseUrl;
+  static String get graphqlUrl => '$_baseUrl/graphql';
+  static String get uploadUrl => '$_baseUrl/api/upload';
+  static String get uploadMultipleUrl => '$_baseUrl/api/upload-multiple';
+  static String get healthUrl => '$_baseUrl/health';
 
   static const String DELETE_PROPERTY = r'''
   mutation DeleteProperty($id: Int!) {
